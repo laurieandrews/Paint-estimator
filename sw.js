@@ -2,7 +2,7 @@
 // Strategy: network-first for the app shell (so updates show up when online),
 // cache-first for static assets (icons, manifest), with an offline fallback.
 
-const CACHE_NAME = 'pce-cache-v2';
+const CACHE_NAME = 'pce-cache-v4';
 const PRECACHE_URLS = [
   './',
   './index.html',
