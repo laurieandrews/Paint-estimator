@@ -1278,6 +1278,38 @@ function App() {
   };
 
   // Saved quotes + business/customer details (persisted on device)
+  // ── LICENSE GATE ──────────────────────────────────────────────────────────
+  const DEV_MODE = true; // set to false when live on Lemon Squeezy
+  const LS_STORE = "paintpro"; // your Lemon Squeezy store slug (fill in later)
+  const [licensed, setLicensed] = useState(() => DEV_MODE || !!store.get("pce_license_key", null));
+  const [licKey, setLicKey] = useState("");
+  const [licError, setLicError] = useState("");
+  const [licLoading, setLicLoading] = useState(false);
+
+  const activateLicense = async () => {
+    const key = licKey.trim();
+    if (!key) { setLicError("Please enter your license key."); return; }
+    setLicLoading(true); setLicError("");
+    try {
+      const res = await fetch("https://api.lemonsqueezy.com/v1/licenses/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+        body: new URLSearchParams({ license_key: key, instance_name: "PaintPro-" + navigator.userAgent.slice(0,40) })
+      });
+      const data = await res.json();
+      if (data.activated) {
+        store.set("pce_license_key", key);
+        store.set("pce_instance_id", data.instance.id);
+        setLicensed(true);
+      } else {
+        setLicError(data.error || "Invalid license key. Please check and try again.");
+      }
+    } catch (e) {
+      setLicError("Could not reach the licence server. Check your connection and try again.");
+    }
+    setLicLoading(false);
+  };
+  // ─────────────────────────────────────────────────────────────────────────
   const [savedQuotes, setSavedQuotes] = useState(() => store.get("pce_quotes", []));
   const [business, setBusiness] = useState(() => ({
     ...defaultBusiness(),
@@ -1506,6 +1538,29 @@ function App() {
     icon: "📋",
     label: "Quotes"
   }];
+  if (!licensed) return /*#__PURE__*/React.createElement("div", {className:"license-gate"},
+    /*#__PURE__*/React.createElement("div", {className:"license-card"},
+      /*#__PURE__*/React.createElement("div", {className:"license-logo"}, "🏠"),
+      /*#__PURE__*/React.createElement("h1", null, "Laurie's Paint Pro"),
+      /*#__PURE__*/React.createElement("p", {className:"license-sub"}, "Professional Estimator"),
+      /*#__PURE__*/React.createElement("div", {className:"license-field"},
+        /*#__PURE__*/React.createElement("label", null, "License Key"),
+        /*#__PURE__*/React.createElement("input", {
+          type:"text", placeholder:"XXXX-XXXX-XXXX-XXXX",
+          value:licKey, onChange:e=>setLicKey(e.target.value),
+          onKeyDown:e=>e.key==="Enter"&&activateLicense(),
+          className:"license-input", autoCapitalize:"characters", spellCheck:false
+        })
+      ),
+      licError && /*#__PURE__*/React.createElement("div", {className:"license-error"}, licError),
+      /*#__PURE__*/React.createElement("button", {className:"license-btn", onClick:activateLicense, disabled:licLoading},
+        licLoading ? "Checking..." : "Activate"
+      ),
+      /*#__PURE__*/React.createElement("p", {className:"license-help"},
+        "Purchase a license at ", /*#__PURE__*/React.createElement("a", {href:"https://paintproapp.lemonsqueezy.com", target:"_blank"}, "paintproapp.lemonsqueezy.com")
+      )
+    )
+  );
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "app"
   }, /*#__PURE__*/React.createElement("style", null, CSS), /*#__PURE__*/React.createElement("header", {
@@ -3394,6 +3449,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .markup-brow .brow-label{color:#7a5a1a;font-style:italic;font-size:12px;}
 .markup-brow .brow-val{color:#7a5a1a;}
 .disclaimer{margin-top:8px;padding:13px;background:var(--accent-light);border-radius:10px;font-size:12px;color:var(--ink);line-height:1.7;}
+.license-gate{min-height:100vh;background:var(--brand-yellow);display:flex;align-items:center;justify-content:center;padding:24px;font-family:var(--sans);}
+.license-card{background:#fff;border-radius:20px;padding:32px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(28,21,16,.15);}
+.license-logo{font-size:48px;margin-bottom:8px;}
+.license-card h1{font-size:1.5rem;font-weight:800;color:var(--ink);margin-bottom:4px;}
+.license-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.license-field{text-align:left;margin-bottom:12px;}
+.license-field label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.license-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;font-family:monospace;letter-spacing:.06em;color:var(--ink);outline:none;transition:border-color .15s;}
+.license-input:focus{border-color:var(--nav-blue);}
+.license-error{font-size:12px;color:var(--red);margin-bottom:10px;padding:8px 12px;background:var(--red-light);border-radius:8px;}
+.license-btn{width:100%;padding:14px;background:var(--brand-yellow);color:var(--ink);border:none;border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px;transition:opacity .15s;}
+.license-btn:disabled{opacity:.6;cursor:not-allowed;}
+.license-help{font-size:11.5px;color:var(--muted);}
+.license-help a{color:var(--nav-blue);}
 
 .add-btn{width:100%;margin-top:12px;padding:13px;border:1.5px dashed var(--border);border-radius:var(--r);background:none;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;}
 .add-btn:hover{border-color:var(--accent);color:var(--accent);}
